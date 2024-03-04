@@ -123,10 +123,9 @@ if start:
         else:
             path = opt
 
-        module_path = datasets.load.prepare_module(path, dataset=True
-        )
+        dataset_module = datasets.load.dataset_module_factory(path)
         # Get dataset builder class from the processing script
-        builder_cls = datasets.load.import_main_class(module_path[0], dataset=True)
+        builder_cls = datasets.load.import_main_class(dataset_module.module_path, dataset=True)
         # Instantiate the dataset builder
         confs = builder_cls.BUILDER_CONFIGS
         if confs and len(confs) > 1:
@@ -136,20 +135,34 @@ if start:
 
     # @st.cache(allow_output_mutation=True)
     def get(opt, conf=None):
-        "Get a dataset from name and conf"
+        """
+        Get a dataset from name and conf
+
+        Parameters
+        ----------
+        opt: ``str``
+            Name of the dataset
+        
+        conf: ``str``
+            Configuration name for the dataset
+        """
         if path_to_datasets is not None:
+            # Path to local dataset is provided
             path = path_to_datasets + opt
         else:
+            # Path to local dataset is not provided
             path = opt
         
-        module_path = datasets.load.prepare_module(path, dataset=True)
-        builder_cls = datasets.load.import_main_class(module_path[0], dataset=True)
+        dataset_module = datasets.load.dataset_module_factory(path)
+        builder_cls = datasets.load.import_main_class(dataset_module.module_path, dataset=True)
         if conf:
             builder_instance = builder_cls(name=conf, cache_dir=path if path_to_datasets is not None else None)
         else:
             builder_instance = builder_cls(cache_dir=path if path_to_datasets is not None else None)
         fail = False
         if path_to_datasets is not None:
+            # If local path to dataset is not provided, it uses 
+            # (i) `load_dataset()`
             dts = datasets.load_dataset(path,
                                    name=builder_cls.BUILDER_CONFIGS[0].name if builder_cls.BUILDER_CONFIGS else None,
             )
@@ -159,10 +172,23 @@ if start:
             builder_instance.manual_download_instructions is None
             and builder_instance.info.size_in_bytes is not None
             and builder_instance.info.size_in_bytes < MAX_SIZE):
+            # If the following condition satisifies, it uses the below methods
+            # - local path to dataset is provided
+            # - `manual_download_instructions` is None
+            # - `size_in_bytes` is not None
+            # - `size_in_bytes` is less than `MAX_SIZE` 
+            # (i) `download_and_prepare()`:
+            #           https://huggingface.co/docs/datasets/v2.18.0/en/package_reference/builder_classes#datasets.DatasetBuilder.download_and_prepare
+            #           Download and prepare the dataset as Arrow files 
+            #           that can be loaded as a Dataset using `builder.as_dataset()`
+            # (ii) `as_dataset()`
+            #           Return a Dataset for the specified split
+            #           By default, `split=None`
             builder_instance.download_and_prepare()
             dts = builder_instance.as_dataset()
             dataset = dts
         else:
+            # If the dataset is too large to browse or requires manual download
             dataset = builder_instance
             fail = True
         return dataset, fail
