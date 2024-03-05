@@ -161,8 +161,9 @@ if start:
             builder_instance = builder_cls(cache_dir=path if path_to_datasets is not None else None)
         fail = False
         if path_to_datasets is not None:
-            # If local path to dataset is not provided, it uses 
+            # If local path to dataset is provided, it uses 
             # (i) `load_dataset()`
+            #           Passes `name` from the builder_cls.BUILDER_CONFIGS
             dts = datasets.load_dataset(path,
                                    name=builder_cls.BUILDER_CONFIGS[0].name if builder_cls.BUILDER_CONFIGS else None,
             )
@@ -173,7 +174,6 @@ if start:
             and builder_instance.info.size_in_bytes is not None
             and builder_instance.info.size_in_bytes < MAX_SIZE):
             # If the following condition satisifies, it uses the below methods
-            # - local path to dataset is provided
             # - `manual_download_instructions` is None
             # - `size_in_bytes` is not None
             # - `size_in_bytes` is less than `MAX_SIZE` 
