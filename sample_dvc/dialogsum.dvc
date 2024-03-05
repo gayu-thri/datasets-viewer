@@ -1,0 +1,5 @@
+outs:
+- md5: c33ba395000d0fa1d2e6c2045d26a29d.dir
+  size: 38253957
+  nfiles: 1
+  path: dialogsum
